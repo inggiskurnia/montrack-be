@@ -2,8 +2,10 @@ package com.exercise5.exercise5.infrastructure.users.gateway;
 
 import com.exercise5.exercise5.common.exception.EmailAlreadyInUseException;
 import com.exercise5.exercise5.entity.Users;
+import com.exercise5.exercise5.infrastructure.users.mapper.UserRowMapper;
 import com.exercise5.exercise5.infrastructure.users.repository.UsersRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,9 +13,11 @@ import java.util.List;
 @Repository
 public class UsersDatabaseGateway implements UsersRepository {
     private final JdbcTemplate jdbctemplate;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsersDatabaseGateway(final JdbcTemplate jdbctemplate){
+    public UsersDatabaseGateway(final JdbcTemplate jdbctemplate, final PasswordEncoder passwordEncoder){
         this.jdbctemplate = jdbctemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public boolean checkEmail(String email){
@@ -36,7 +40,7 @@ public class UsersDatabaseGateway implements UsersRepository {
         String sql = "INSERT INTO users (email, password, name) VALUES (?, ?, ?) RETURNING id";
         Long insertedUserId =jdbctemplate.queryForObject(sql, Long.class,
                 entity.getEmail(),
-                entity.getPassword(),
+                passwordEncoder.encode(entity.getPassword()),
                 entity.getName()
         );
         entity.setId(insertedUserId);
@@ -50,7 +54,8 @@ public class UsersDatabaseGateway implements UsersRepository {
 
     @Override
     public List<Users> findAll() {
-        return List.of();
+        String sql = "SELECT * FROM users";
+        return jdbctemplate.query(sql, new UserRowMapper());
     }
 
     @Override
